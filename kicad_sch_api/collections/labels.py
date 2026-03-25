@@ -253,6 +253,7 @@ class LabelCollection(BaseCollection[LabelElement]):
         justify_h: str = "left",
         justify_v: str = "bottom",
         uuid: Optional[str] = None,
+        shape: Optional[str] = None,
     ) -> LabelElement:
         """
         Add a label to the collection.
@@ -290,12 +291,14 @@ class LabelCollection(BaseCollection[LabelElement]):
             position = Point(position[0], position[1])
 
         # Create label data
+        from ..core.types import HierarchicalLabelShape
         label_data = Label(
             uuid=uuid,
             text=text.strip(),
             position=position,
             rotation=rotation,
             size=size,
+            shape=HierarchicalLabelShape(shape) if shape else None,
             justify_h=justify_h,
             justify_v=justify_v,
         )

@@ -219,6 +219,7 @@ class SExpressionParser:
             "junctions": [],
             "labels": [],
             "hierarchical_labels": [],
+            "global_label": [],
             "no_connects": [],
             "texts": [],
             "text_boxes": [],
@@ -278,6 +279,10 @@ class SExpressionParser:
                 hlabel = self._parse_hierarchical_label(item)
                 if hlabel:
                     schematic_data["hierarchical_labels"].append(hlabel)
+            elif element_type == "global_label":
+                glabel = self._parse_global_label(item)
+                if glabel:
+                    schematic_data["global_label"].append(glabel)
             elif element_type == "no_connect":
                 no_connect = self._parse_no_connect(item)
                 if no_connect:
@@ -378,6 +383,10 @@ class SExpressionParser:
         for hlabel in schematic_data.get("hierarchical_labels", []):
             sexp_data.append(self._hierarchical_label_to_sexp(hlabel))
 
+        # Add global labels
+        for glabel in schematic_data.get("global_label", []):
+            sexp_data.append(self._global_label_to_sexp(glabel))
+
         # Add no_connects
         for no_connect in schematic_data.get("no_connects", []):
             sexp_data.append(self._no_connect_to_sexp(no_connect))
@@ -468,6 +477,10 @@ class SExpressionParser:
     def _parse_hierarchical_label(self, item: List[Any]) -> Optional[Dict[str, Any]]:
         """Parse a hierarchical label definition."""
         return self._label_parser._parse_hierarchical_label(item)
+
+    def _parse_global_label(self, item: List[Any]) -> Optional[Dict[str, Any]]:
+        """Parse a global label definition."""
+        return self._label_parser._parse_global_label(item)
 
     def _parse_no_connect(self, item: List[Any]) -> Optional[Dict[str, Any]]:
         """Parse a no_connect symbol."""
@@ -621,6 +634,10 @@ class SExpressionParser:
     def _hierarchical_label_to_sexp(self, hlabel_data: Dict[str, Any]) -> List[Any]:
         """Convert hierarchical label to S-expression."""
         return self._label_parser._hierarchical_label_to_sexp(hlabel_data)
+
+    def _global_label_to_sexp(self, glabel_data: Dict[str, Any]) -> List[Any]:
+        """Convert global label to S-expression."""
+        return self._label_parser._global_label_to_sexp(glabel_data)
 
     def _no_connect_to_sexp(self, no_connect_data: Dict[str, Any]) -> List[Any]:
         """Convert no_connect to S-expression."""
