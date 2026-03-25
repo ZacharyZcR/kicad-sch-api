@@ -6,9 +6,8 @@ with exact format preservation and enhanced error handling.
 """
 
 import logging
-import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import sexpdata
 
@@ -23,7 +22,7 @@ from ..parsers.elements.wire_parser import WireParser
 from ..parsers.utils import color_to_rgb255, color_to_rgba
 from ..utils.validation import ValidationError, ValidationIssue
 from .formatter import ExactFormatter
-from .types import Junction, Label, Net, Point, SchematicSymbol, Wire
+from .types import Point
 
 logger = logging.getLogger(__name__)
 

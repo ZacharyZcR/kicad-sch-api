@@ -195,14 +195,20 @@ class LabelParser(BaseElementParser):
                             # Parse font properties
                             for font_elem in effect_elem[1:]:
                                 if isinstance(font_elem, list):
-                                    font_prop = str(font_elem[0]) if isinstance(font_elem[0], sexpdata.Symbol) else None
+                                    font_prop = (
+                                        str(font_elem[0])
+                                        if isinstance(font_elem[0], sexpdata.Symbol)
+                                        else None
+                                    )
                                     if font_prop == "size" and len(font_elem) >= 3:
                                         glabel_data["effects"]["font"]["size"] = [
                                             float(font_elem[1]),
                                             float(font_elem[2]),
                                         ]
                                     elif font_prop == "thickness" and len(font_elem) >= 2:
-                                        glabel_data["effects"]["font"]["thickness"] = float(font_elem[1])
+                                        glabel_data["effects"]["font"]["thickness"] = float(
+                                            font_elem[1]
+                                        )
 
                         elif effect_type == "justify":
                             # Parse justification: (justify left) or (justify right bottom)
