@@ -96,6 +96,10 @@ class Schematic:
         ]
         self._components = ComponentCollection(component_symbols, parent_schematic=self)
 
+        # Populate pins from symbol library for loaded components
+        if file_path:
+            self._populate_pins_from_library()
+
         # Initialize wire collection
         wire_data = self._data.get("wires", [])
         wires = ElementFactory.create_wires_from_list(wire_data)
@@ -172,6 +176,18 @@ class Schematic:
             f"{len(self._hierarchical_labels)} hierarchical labels, {len(self._no_connects)} no-connects, "
             f"and {len(self._nets)} nets with managers initialized"
         )
+
+    def _populate_pins_from_library(self) -> None:
+        """Populate component pins from symbol library after loading from file."""
+        from ..library.cache import get_symbol_cache
+
+        symbol_cache = get_symbol_cache()
+        for comp in self._components:
+            if comp.pins:
+                continue
+            symbol_def = comp.get_symbol_definition()
+            if symbol_def and symbol_def.pins:
+                comp._data.pins = symbol_def.pins.copy()
 
     @classmethod
     def load(cls, file_path: Union[str, Path]) -> "Schematic":

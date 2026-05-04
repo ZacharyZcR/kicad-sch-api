@@ -101,15 +101,15 @@ def apply_transformation(
         y = -y
         logger.debug(f"After Y mirror: ({x}, {y})")
 
-    # Apply rotation
+    # Apply rotation (KiCad Y-down: 90° CW = (x,y)->(y,-x))
     if rotation == 90:
-        x, y = -y, x
+        x, y = y, -x
         logger.debug(f"After 90° rotation: ({x}, {y})")
     elif rotation == 180:
         x, y = -x, -y
         logger.debug(f"After 180° rotation: ({x}, {y})")
     elif rotation == 270:
-        x, y = y, -x
+        x, y = -y, x
         logger.debug(f"After 270° rotation: ({x}, {y})")
 
     # Translate to absolute position
