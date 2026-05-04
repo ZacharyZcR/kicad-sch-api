@@ -217,8 +217,15 @@ def cmd_pins(file: str, reference: str, as_json: bool) -> None:
         click.echo(f"{'Pin#':<6} {'Name':<20} {'Type':<12} {'Position'}")
         click.echo("-" * 60)
         for pin in pins:
-            pos = pin.get("position", {})
-            pos_str = f"({pos.get('x', '?')}, {pos.get('y', '?')})" if pos else "N/A"
+            pos = pin.get("position")
+            if pos is None:
+                pos_str = "N/A"
+            elif isinstance(pos, dict):
+                pos_str = f"({pos.get('x', '?')}, {pos.get('y', '?')})"
+            elif hasattr(pos, "x"):
+                pos_str = f"({pos.x:.2f}, {pos.y:.2f})"
+            else:
+                pos_str = str(pos)
             click.echo(f"{pin['number']:<6} {pin['name']:<20} {pin['type']:<12} {pos_str}")
 
 
