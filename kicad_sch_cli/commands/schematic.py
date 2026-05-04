@@ -116,29 +116,49 @@ def cmd_to_python(file: str, output: str) -> None:
 @click.command()
 @click.argument("file")
 @click.option("-o", "--output", default=None, help="ERC report output path")
-@click.option("--format", "fmt", default="report", type=click.Choice(["json", "report"]))
+@click.option("--format", "fmt", default="json", type=click.Choice(["json", "report"]))
 def cmd_erc(file: str, output: str, fmt: str) -> None:
-    """Run Electrical Rule Check.
+    """Run Electrical Rule Check via kicad-cli."""
+    import json as json_mod
+    import tempfile
+    from ..utils import run_kicad_cli, to_win_path, find_kicad_cli
 
-    Requires kicad-cli or Docker.
-    """
-    sch = load_schematic(file)
-    try:
-        kwargs = {"format": fmt}
-        if output:
-            kwargs["output_path"] = output
-        report = sch.run_erc(**kwargs)
-        if hasattr(report, "has_errors") and report.has_errors():
-            click.echo(f"ERC: {report.error_count} error(s), {report.warning_count} warning(s)")
-            if hasattr(report, "violations"):
-                for v in report.violations:
-                    click.echo(f"  [{v.severity}] {v.message}")
-            sys.exit(1)
-        else:
-            click.echo("ERC: OK")
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+    if not find_kicad_cli():
+        click.echo("Error: kicad-cli not found. Set KICAD_CLI env or install KiCad.", err=True)
         sys.exit(1)
+
+    abs_file = str(Path(file).resolve())
+    if not output:
+        out_dir = str(Path(abs_file).parent)
+        output = str(Path(out_dir) / f"{Path(abs_file).stem}-erc.{fmt}")
+
+    args = ["sch", "erc", abs_file, "--format", fmt, "-o", output]
+    result = run_kicad_cli(args, abs_file)
+
+    if fmt == "json":
+        try:
+            with open(output, encoding="utf-8-sig") as f:
+                data = json_mod.load(f)
+            errors = 0
+            warnings = 0
+            for sheet in data.get("sheets", []):
+                for v in sheet.get("violations", []):
+                    sev = v.get("severity", "")
+                    desc = v.get("description", "?")
+                    click.echo(f"  [{sev}] {desc}")
+                    if sev == "error":
+                        errors += 1
+                    elif sev == "warning":
+                        warnings += 1
+            click.echo(f"\nERC: {errors} error(s), {warnings} warning(s)")
+            if errors > 0:
+                sys.exit(1)
+        except Exception as e:
+            click.echo(result.stdout or result.stderr or str(e))
+    else:
+        click.echo(result.stdout or result.stderr)
+        if result.returncode != 0:
+            sys.exit(1)
 
 
 @click.command()
@@ -148,66 +168,52 @@ def cmd_erc(file: str, output: str, fmt: str) -> None:
 @click.option("--netlist-format", default="kicadsexpr",
               type=click.Choice(["kicadsexpr", "kicadxml", "spice", "spicemodel"]),
               help="Netlist format (only for netlist export)")
-@click.option("--bom-fields", default=None, help="BOM fields, comma-separated")
-@click.option("--bom-group-by", default=None, help="BOM group by fields, comma-separated")
-@click.option("--exclude-dnp", is_flag=True, help="Exclude Do-Not-Populate (BOM only)")
 @click.option("--bw", is_flag=True, help="Black and white (PDF/SVG only)")
-def cmd_export(file: str, format: str, output: str, netlist_format: str,
-               bom_fields: str, bom_group_by: str, exclude_dnp: bool, bw: bool) -> None:
-    """Export schematic to various formats.
+def cmd_export(file: str, format: str, output: str, netlist_format: str, bw: bool) -> None:
+    """Export schematic via kicad-cli.
 
     \b
     Formats:
-      netlist  - Electrical netlist (kicadsexpr/kicadxml/spice)
-      bom      - Bill of Materials
+      netlist  - Electrical netlist
+      bom      - Bill of Materials (CSV)
       pdf      - PDF document
       svg      - SVG vector graphics
       dxf      - DXF CAD format
-
-    Requires kicad-cli or Docker.
     """
-    sch = load_schematic(file)
-    try:
-        if format == "netlist":
-            kwargs = {"format": netlist_format}
-            if output:
-                kwargs["output_path"] = output
-            result = sch.export_netlist(**kwargs)
-            click.echo(f"Netlist: {result}")
-        elif format == "bom":
-            kwargs = {}
-            if output:
-                kwargs["output_path"] = output
-            if bom_fields:
-                kwargs["fields"] = [f.strip() for f in bom_fields.split(",")]
-            if bom_group_by:
-                kwargs["group_by"] = [f.strip() for f in bom_group_by.split(",")]
-            if exclude_dnp:
-                kwargs["exclude_dnp"] = True
-            result = sch.export_bom(**kwargs)
-            click.echo(f"BOM: {result}")
-        elif format == "pdf":
-            kwargs = {}
-            if output:
-                kwargs["output_path"] = output
-            if bw:
-                kwargs["black_and_white"] = True
-            result = sch.export_pdf(**kwargs)
-            click.echo(f"PDF: {result}")
-        elif format == "svg":
-            kwargs = {}
-            if output:
-                kwargs["output_dir"] = output
-            if bw:
-                kwargs["black_and_white"] = True
-            result = sch.export_svg(**kwargs)
-            click.echo(f"SVG: {result}")
-        elif format == "dxf":
-            kwargs = {}
-            if output:
-                kwargs["output_dir"] = output
-            result = sch.export_dxf(**kwargs)
-            click.echo(f"DXF: {result}")
-    except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+    from ..utils import run_kicad_cli, find_kicad_cli
+
+    if not find_kicad_cli():
+        click.echo("Error: kicad-cli not found. Set KICAD_CLI env or install KiCad.", err=True)
         sys.exit(1)
+
+    abs_file = str(Path(file).resolve())
+    stem = Path(abs_file).stem
+
+    if format == "netlist":
+        out = output or f"{stem}.net"
+        args = ["sch", "export", "netlist", abs_file, "-o", out, "--format", netlist_format]
+    elif format == "bom":
+        out = output or f"{stem}.csv"
+        args = ["sch", "export", "bom", abs_file, "-o", out]
+    elif format == "pdf":
+        out = output or f"{stem}.pdf"
+        args = ["sch", "export", "pdf", abs_file, "-o", out]
+        if bw:
+            args.append("--black-and-white")
+    elif format == "svg":
+        out = output or "."
+        args = ["sch", "export", "svg", abs_file, "-o", out]
+        if bw:
+            args.append("--black-and-white")
+    elif format == "dxf":
+        out = output or "."
+        args = ["sch", "export", "dxf", abs_file, "-o", out]
+    else:
+        click.echo(f"Unknown format: {format}", err=True)
+        sys.exit(1)
+
+    result = run_kicad_cli(args, abs_file)
+    if result.returncode != 0:
+        click.echo(f"Error: {result.stderr or result.stdout}", err=True)
+        sys.exit(1)
+    click.echo(f"Exported: {out}")
