@@ -1,4 +1,4 @@
-"""Component commands: add, list, remove, pins, search."""
+"""Component commands: add, list, remove, update, pins, search."""
 
 import json
 import sys
@@ -15,7 +15,10 @@ from ..utils import load_schematic, parse_position, save_schematic
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.option("--lib", default=None, help="Filter by lib_id (e.g. Device:R)")
 @click.option("--value", default=None, help="Filter by value")
-def cmd_list_components(file: str, as_json: bool, lib: str, value: str) -> None:
+@click.option("--sort", "sort_by", default="ref",
+              type=click.Choice(["ref", "lib", "value", "x", "y"]),
+              help="Sort order")
+def cmd_list_components(file: str, as_json: bool, lib: str, value: str, sort_by: str) -> None:
     """List all components in schematic."""
     sch = load_schematic(file)
 
@@ -26,6 +29,15 @@ def cmd_list_components(file: str, as_json: bool, lib: str, value: str) -> None:
         if value and value != comp.value:
             continue
         components.append(comp)
+
+    sort_keys = {
+        "ref": lambda c: c.reference,
+        "lib": lambda c: c.lib_id,
+        "value": lambda c: c.value,
+        "x": lambda c: c.position.x,
+        "y": lambda c: c.position.y,
+    }
+    components.sort(key=sort_keys[sort_by])
 
     if as_json:
         data = []
@@ -48,6 +60,7 @@ def cmd_list_components(file: str, as_json: bool, lib: str, value: str) -> None:
         for comp in components:
             pos = f"({comp.position.x:.2f}, {comp.position.y:.2f})"
             click.echo(f"{comp.reference:<8} {comp.lib_id:<30} {comp.value:<12} {pos:<16} {comp.rotation}°")
+        click.echo(f"\nTotal: {len(components)}")
 
 
 @click.command()
@@ -58,8 +71,9 @@ def cmd_list_components(file: str, as_json: bool, lib: str, value: str) -> None:
 @click.option("--pos", required=True, help="Position as x,y")
 @click.option("--rotation", default=0.0, type=float, help="Rotation in degrees")
 @click.option("--footprint", default=None, help="Footprint")
+@click.option("--unit", default=1, type=int, help="Unit number for multi-unit components")
 def cmd_add_component(file: str, lib_id: str, reference: str, value: str,
-                      pos: str, rotation: float, footprint: str) -> None:
+                      pos: str, rotation: float, footprint: str, unit: int) -> None:
     """Add a component to schematic.
 
     Example: kicad-sch add circuit.kicad_sch Device:R R1 10k --pos 100,100
@@ -75,6 +89,7 @@ def cmd_add_component(file: str, lib_id: str, reference: str, value: str,
             position=position,
             rotation=rotation,
             footprint=footprint,
+            unit=unit,
         )
         save_schematic(sch, file)
         click.echo(f"Added: {comp.reference} ({lib_id}) at {position}")
@@ -99,6 +114,79 @@ def cmd_remove_component(file: str, reference: str) -> None:
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+@click.command()
+@click.argument("file")
+@click.argument("reference")
+@click.option("--pos", default=None, help="New position as x,y")
+@click.option("--move", "offset", default=None, help="Translate by dx,dy")
+@click.option("--rotation", default=None, type=float, help="Set rotation (degrees)")
+@click.option("--rotate", default=None, type=float, help="Rotate by angle (cumulative)")
+@click.option("--value", default=None, help="Set value")
+@click.option("--footprint", default=None, help="Set footprint")
+@click.option("--set-prop", multiple=True, help="Set property as name=value")
+def cmd_update_component(file: str, reference: str, pos: str, offset: str,
+                         rotation: float, rotate: float, value: str,
+                         footprint: str, set_prop: tuple) -> None:
+    """Update a component's properties.
+
+    \b
+    Examples:
+      kicad-sch update circuit.kicad_sch R1 --value 4.7k
+      kicad-sch update circuit.kicad_sch U1 --pos 120,80
+      kicad-sch update circuit.kicad_sch U1 --rotate 90
+      kicad-sch update circuit.kicad_sch R1 --set-prop MPN=RC0603FR-0710KL
+    """
+    sch = load_schematic(file)
+    try:
+        comp = sch.components.get(reference)
+    except Exception:
+        click.echo(f"Error: Component {reference} not found", err=True)
+        sys.exit(1)
+
+    changes = []
+
+    if pos:
+        p = parse_position(pos)
+        comp.move(p[0], p[1])
+        changes.append(f"position -> {p}")
+
+    if offset:
+        d = parse_position(offset)
+        comp.translate(d[0], d[1])
+        changes.append(f"translate ({d[0]:+}, {d[1]:+})")
+
+    if rotation is not None:
+        comp.rotation = rotation
+        changes.append(f"rotation -> {rotation}°")
+
+    if rotate is not None:
+        comp.rotate(rotate)
+        changes.append(f"rotated +{rotate}°")
+
+    if value is not None:
+        comp.value = value
+        changes.append(f"value -> {value}")
+
+    if footprint is not None:
+        comp.footprint = footprint
+        changes.append(f"footprint -> {footprint}")
+
+    for prop_str in set_prop:
+        if "=" not in prop_str:
+            click.echo(f"Error: Invalid property format: {prop_str} (expected name=value)", err=True)
+            sys.exit(1)
+        name, val = prop_str.split("=", 1)
+        comp.set_property(name, val)
+        changes.append(f"{name} = {val}")
+
+    if not changes:
+        click.echo("Nothing to update")
+        return
+
+    save_schematic(sch, file)
+    click.echo(f"Updated {reference}: {', '.join(changes)}")
 
 
 @click.command()
@@ -147,7 +235,7 @@ def cmd_search(pattern: str, limit: int) -> None:
         if not results:
             click.echo(f"No symbols matching '{pattern}'")
             return
-        for i, sym in enumerate(results[:limit]):
+        for sym in results[:limit]:
             click.echo(f"  {sym.lib_id:<40} pins: {len(sym.pins)}")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
