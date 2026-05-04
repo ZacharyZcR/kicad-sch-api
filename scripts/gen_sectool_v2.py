@@ -72,7 +72,7 @@ def pin_nc(ref, num):
 print("放置元件...")
 
 # ── 封装定义 ──
-FP_USB_C    = "Connector_USB:USB_C_Receptacle_GCT_USB4115-03-C"
+FP_USB_C    = "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
 FP_TP4056   = "Package_SO:HSOP-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.1mm_ThermalVias"
 FP_R0805    = "Resistor_SMD:R_0805_2012Metric"
 FP_C0805    = "Capacitor_SMD:C_0805_2012Metric"
@@ -92,7 +92,7 @@ FP_PIN2x04  = "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical"
 # ── 电源区 y=40~100 ──
 add("Connector:USB_C_Receptacle",          "USB1", "USB-C",    70,  60, footprint=FP_USB_C)
 add("Battery_Management:TP4056-42-ESOP8",  "U4",   "TP4056",  140, 60, footprint=FP_TP4056)
-add("Device:R",                            "R5",   "1.2K",    155, 88, footprint=FP_R0805)
+add("Device:R",                            "R5",   "1.2K",    140, 75, footprint=FP_R0805)
 add("Connector_Generic:Conn_01x02",        "J1",   "BAT",     190, 60, footprint=FP_JST2P)
 add("Switch:SW_SPDT",                      "SW6",  "PWR",     220, 60, footprint=FP_SW_SPDT)
 add("Regulator_Linear:AMS1117-3.3",        "U2",   "AMS1117", 265, 60, footprint=FP_SOT223)
@@ -146,23 +146,18 @@ print("\n布线...")
 
 # ──── A: 电源系统 ────
 
-# USB1: VBUS(A4) → +5V, GND(A1) → GND
-# 注：A4/A9/B4/B9 坐标相同，A1/A12/B1/B12 坐标相同，只需各连一次
-pin_pwr("USB1", "A4", "+5V")
-pin_pwr("USB1", "A1", "GND")
-# USB D+/D-（A6/B6 坐标不同，都要连）
-pin_lbl("USB1", "A6", "USB_DP", dx=10.16)
-pin_lbl("USB1", "A7", "USB_DN", dx=10.16)
-pin_lbl("USB1", "B6", "USB_DP", dx=10.16)
-pin_lbl("USB1", "B7", "USB_DN", dx=10.16)
-# CC1/CC2 → NC（不用 USB PD）
-pin_nc("USB1", "A5")
-pin_nc("USB1", "B5")
-# SBU1/SBU2 → NC
-pin_nc("USB1", "A8")
-pin_nc("USB1", "B8")
-# 高速差分对 → NC（只用 USB 2.0）
-for pn in ["A2","A3","A10","A11","B2","B3","B10","B11"]:
+# USB1: 只连 A 排（USB 2.0 足够），B 排全部 NC
+# A 排有效信号
+pin_pwr("USB1", "A4", "+5V")          # VBUS
+pin_pwr("USB1", "A1", "GND")          # GND
+pin_lbl("USB1", "A6", "USB_DP", dx=10.16)  # D+
+pin_lbl("USB1", "A7", "USB_DN", dx=10.16)  # D-
+pin_nc("USB1", "A5")                   # CC1
+pin_nc("USB1", "A8")                   # SBU1
+for pn in ["A2","A3","A9","A10","A11","A12"]:
+    pin_nc("USB1", pn)
+# B 排全部 NC（铺铜时自然连通同网络 pad）
+for pn in ["B1","B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","B12"]:
     pin_nc("USB1", pn)
 # SHIELD → GND
 pin_pwr("USB1", "SH", "GND")
