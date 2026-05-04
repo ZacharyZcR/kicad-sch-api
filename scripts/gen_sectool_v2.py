@@ -73,7 +73,7 @@ print("放置元件...")
 
 # ── 封装定义 ──
 FP_USB_C    = "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
-FP_TP4056   = "Package_SO:TSSOP-8_4.4x3mm_P0.65mm"
+FP_TP4056   = "Package_SO:HSOP-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.1mm_ThermalVias"
 FP_R0805    = "Resistor_SMD:R_0805_2012Metric"
 FP_C0805    = "Capacitor_SMD:C_0805_2012Metric"
 FP_LED0805  = "LED_SMD:LED_0805_2012Metric"
@@ -94,7 +94,7 @@ add("Connector:USB_C_Receptacle",          "USB1", "USB-C",    70,  60, footprin
 add("Battery_Management:TP4056-42-ESOP8",  "U4",   "TP4056",  140, 60, footprint=FP_TP4056)
 add("Device:R",                            "R5",   "1.2K",    155, 88, footprint=FP_R0805)
 add("Connector_Generic:Conn_01x02",        "J1",   "BAT",     190, 60, footprint=FP_JST2P)
-add("Switch:SW_Push",                      "SW6",  "PWR",     220, 60, footprint=FP_SW_SPDT)
+add("Switch:SW_SPDT",                      "SW6",  "PWR",     220, 60, footprint=FP_SW_SPDT)
 add("Regulator_Linear:AMS1117-3.3",        "U2",   "AMS1117", 265, 60, footprint=FP_SOT223)
 add("Device:C",                            "C1",   "10uF",    245, 88, footprint=FP_C0805)
 add("Device:C",                            "C2",   "10uF",    265, 88, footprint=FP_C0805)
@@ -192,9 +192,10 @@ pin_nc("U4", "7")
 pin_lbl("J1", "1", "BAT", dx=-10)
 pin_pwr("J1", "2", "GND")
 
-# SW6 开关: pin1→BAT, pin2→VIN
-pin_lbl("SW6", "1", "BAT", dx=-10)
-pin_lbl("SW6", "2", "VIN", dx=10)
+# SW6 SPDT 开关: pin2(B,公共)→BAT, pin1(A)→VIN, pin3(C)→NC
+pin_lbl("SW6", "2", "BAT", dx=-10)
+pin_lbl("SW6", "1", "VIN", dx=10)
+pin_nc("SW6", "3")
 
 # U2 AMS1117: pin3=VI→VIN, pin2=VO→VCC, pin1=GND
 pin_lbl("U2", "3", "VIN", dx=-10.16)
