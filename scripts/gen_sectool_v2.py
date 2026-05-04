@@ -72,7 +72,7 @@ def pin_nc(ref, num):
 print("放置元件...")
 
 # ── 封装定义 ──
-FP_USB_C    = "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+FP_USB_C    = "Connector_USB:USB_C_Receptacle_GCT_USB4115-03-C"
 FP_TP4056   = "Package_SO:HSOP-8-1EP_3.9x4.9mm_P1.27mm_EP2.41x3.1mm_ThermalVias"
 FP_R0805    = "Resistor_SMD:R_0805_2012Metric"
 FP_C0805    = "Capacitor_SMD:C_0805_2012Metric"
