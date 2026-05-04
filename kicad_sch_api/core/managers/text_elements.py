@@ -96,6 +96,7 @@ class TextElementManager(BaseManager):
         text: str,
         position: Union[Point, Tuple[float, float]],
         shape: str = "input",
+        rotation: float = 0.0,
         effects: Optional[Dict[str, Any]] = None,
         uuid_str: Optional[str] = None,
     ) -> str:
@@ -106,6 +107,7 @@ class TextElementManager(BaseManager):
             text: Label text
             position: Label position
             shape: Shape type (input, output, bidirectional, tri_state, passive)
+            rotation: Label rotation in degrees (default 0)
             effects: Text effects
             uuid_str: Optional UUID
 
@@ -120,6 +122,8 @@ class TextElementManager(BaseManager):
 
         if effects is None:
             effects = self._get_default_text_effects()
+            justify = "right" if rotation in (180, 180.0, 270, 270.0) else "left"
+            effects["justify"] = [justify]
 
         valid_shapes = ["input", "output", "bidirectional", "tri_state", "passive"]
         if shape not in valid_shapes:
@@ -130,7 +134,7 @@ class TextElementManager(BaseManager):
             "uuid": uuid_str,
             "text": text,
             "shape": shape,
-            "at": [position.x, position.y, 0],
+            "at": [position.x, position.y, rotation],
             "effects": effects,
         }
 
@@ -147,6 +151,7 @@ class TextElementManager(BaseManager):
         text: str,
         position: Union[Point, Tuple[float, float]],
         shape: str = "input",
+        rotation: float = 0.0,
         effects: Optional[Dict[str, Any]] = None,
         uuid_str: Optional[str] = None,
     ) -> str:
@@ -157,6 +162,7 @@ class TextElementManager(BaseManager):
             text: Label text
             position: Label position
             shape: Shape type
+            rotation: Label rotation in degrees (default 0)
             effects: Text effects
             uuid_str: Optional UUID
 
@@ -171,6 +177,8 @@ class TextElementManager(BaseManager):
 
         if effects is None:
             effects = self._get_default_text_effects()
+            justify = "right" if rotation in (180, 180.0, 270, 270.0) else "left"
+            effects["justify"] = [justify]
 
         valid_shapes = ["input", "output", "bidirectional", "tri_state", "passive"]
         if shape not in valid_shapes:
@@ -181,7 +189,7 @@ class TextElementManager(BaseManager):
             "uuid": uuid_str,
             "text": text,
             "shape": shape,
-            "at": [position.x, position.y, 0],
+            "at": [position.x, position.y, rotation],
             "effects": effects,
         }
 

@@ -237,7 +237,7 @@ class LabelCollection(BaseCollection[LabelElement]):
         return [
             IndexSpec(
                 name="uuid",
-                key_func=lambda l: l.uuid,
+                key_func=lambda label: label.uuid,
                 unique=True,
                 description="UUID index for fast lookups",
             ),
@@ -253,6 +253,7 @@ class LabelCollection(BaseCollection[LabelElement]):
         justify_h: str = "left",
         justify_v: str = "bottom",
         uuid: Optional[str] = None,
+        shape: Optional[str] = None,
     ) -> LabelElement:
         """
         Add a label to the collection.
@@ -290,12 +291,15 @@ class LabelCollection(BaseCollection[LabelElement]):
             position = Point(position[0], position[1])
 
         # Create label data
+        from ..core.types import HierarchicalLabelShape
+
         label_data = Label(
             uuid=uuid,
             text=text.strip(),
             position=position,
             rotation=rotation,
             size=size,
+            shape=HierarchicalLabelShape(shape) if shape else None,
             justify_h=justify_h,
             justify_v=justify_v,
         )
@@ -453,7 +457,7 @@ class LabelCollection(BaseCollection[LabelElement]):
             return base_stats
 
         unique_texts = len(self._text_index)
-        avg_size = sum(l.size for l in self._items) / len(self._items)
+        avg_size = sum(label.size for label in self._items) / len(self._items)
 
         base_stats = super().get_statistics()
         base_stats.update(

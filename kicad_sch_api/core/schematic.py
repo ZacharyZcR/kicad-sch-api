@@ -8,18 +8,14 @@ and maintainability.
 
 import logging
 import time
-import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
-
-import sexpdata
 
 from ..collections import (
     BusEntryCollection,
     ComponentCollection,
     JunctionCollection,
     LabelCollection,
-    LabelElement,
     WireCollection,
 )
 from ..library.cache import get_symbol_cache
@@ -42,22 +38,9 @@ from .no_connects import NoConnectCollection
 from .parser import SExpressionParser
 from .texts import TextCollection
 from .types import (
-    BusEntry,
-    HierarchicalLabelShape,
-    Junction,
-    Label,
     LabelType,
-    Net,
-    NoConnect,
     Point,
     SchematicSymbol,
-    Sheet,
-    Text,
-    TextBox,
-    TitleBlock,
-    Wire,
-    WireType,
-    point_from_dict_or_tuple,
 )
 
 logger = logging.getLogger(__name__)
@@ -862,8 +845,12 @@ class Schematic:
             raise ValueError("Cannot provide both position and pin")
 
         # Handle pin-based placement
-        justify_h = "left"
         justify_v = "bottom"
+
+        if pin is None:
+            # Position-based: compute justify from rotation
+            effective_rotation = rotation if rotation is not None else 0
+            justify_h = "right" if effective_rotation in (180, 180.0, 270, 270.0) else "left"
 
         if pin is not None:
             component_ref, pin_number = pin
@@ -1084,7 +1071,15 @@ class Schematic:
             UUID of created hierarchical label
         """
         # Use the hierarchical_labels collection
-        hlabel = self._hierarchical_labels.add(text, position, rotation=rotation, size=size)
+        justify_h = "right" if rotation in (180, 180.0, 270, 270.0) else "left"
+        hlabel = self._hierarchical_labels.add(
+            text,
+            position,
+            rotation=rotation,
+            size=size,
+            shape=shape,
+            justify_h=justify_h,
+        )
         self._sync_hierarchical_labels_to_data()  # Sync immediately
         self._format_sync_manager.mark_dirty("hierarchical_label", "add", {"uuid": hlabel.uuid})
         self._modified = True
@@ -1095,6 +1090,7 @@ class Schematic:
         text: str,
         position: Union[Point, Tuple[float, float]],
         shape: str = "input",
+        rotation: float = 0.0,
         effects: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
@@ -1104,12 +1100,19 @@ class Schematic:
             text: Label text
             position: Label position
             shape: Shape type
+            rotation: Label rotation in degrees (default 0)
             effects: Text effects
 
         Returns:
             UUID of created global label
         """
-        label_uuid = self._text_element_manager.add_global_label(text, position, shape, effects)
+        label_uuid = self._text_element_manager.add_global_label(
+            text,
+            position,
+            shape,
+            rotation=rotation,
+            effects=effects,
+        )
         self._format_sync_manager.mark_dirty("global_label", "add", {"uuid": label_uuid})
         self._modified = True
         return label_uuid
@@ -1772,7 +1775,10 @@ class Schematic:
                 "position": {"x": hlabel_element.position.x, "y": hlabel_element.position.y},
                 "rotation": hlabel_element.rotation,
                 "size": hlabel_element.size,
+                "justify": hlabel_element._data.justify_h,
             }
+            if hlabel_element._data.shape is not None:
+                hlabel_dict["shape"] = hlabel_element._data.shape.value
             hierarchical_label_data.append(hlabel_dict)
 
         self._data["hierarchical_labels"] = hierarchical_label_data
@@ -1873,7 +1879,6 @@ class Schematic:
             if isinstance(element, list) and len(element) >= 2:
                 # Check if this is a project element: ['project', 'old_name', ...]
                 if hasattr(element[0], "__str__") and str(element[0]) == "project":
-                    old_name = element[1]
                     element[1] = self.name  # Replace with current schematic name
                 else:
                     # Recursively check nested elements
