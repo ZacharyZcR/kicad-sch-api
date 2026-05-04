@@ -180,9 +180,7 @@ pin_lbl("SW6", "2", "VIN", dx=10)
 
 # U2 AMS1117: pin3=VI→VIN, pin2=VO→VCC, pin1=GND
 pin_lbl("U2", "3", "VIN", dx=-10.16)
-p_vo = P("U2", "2")
-w(p_vo[0], p_vo[1], p_vo[0]+10.16, p_vo[1])
-pwr("VCC", p_vo[0]+10.16, p_vo[1])
+pin_lbl("U2", "2", "VCC", dx=10.16)
 pin_pwr("U2", "1", "GND")
 
 # C1: VIN↔GND
@@ -201,16 +199,20 @@ w(p_c3_2[0], p_c3_2[1], p_c3_2[0], (p_c3_2[1]-7.62))
 pwr("VCC", p_c3_2[0], (p_c3_2[1]-7.62))
 pin_pwr("C3", "1", "GND")
 
-# PWR_FLAG 连 VCC net 和 GND net
-pf_vcc = pwr("PWR_FLAG", 280, 40)
-pf_vcc_p = P(f"FLG{_flg[0]}", "1")
-pwr("VCC", pf_vcc_p[0], (pf_vcc_p[1] + 5.08))
-w(pf_vcc_p[0], pf_vcc_p[1], pf_vcc_p[0], (pf_vcc_p[1] + 5.08))
+# PWR_FLAG 驱动 +5V net 和 GND net
+# +5V PWR_FLAG：放 PWR_FLAG，连到 +5V 符号
+pf_5v = pwr("PWR_FLAG", 280, 40)
+pf_5v_p = P(f"FLG{_flg[0]}", "1")
+p5v = pwr("+5V", pf_5v_p[0], pf_5v_p[1] + 5.08)
+p5v_p = P(p5v.reference, "1")
+w(pf_5v_p[0], pf_5v_p[1], p5v_p[0], p5v_p[1])
 
+# GND PWR_FLAG
 pf_gnd = pwr("PWR_FLAG", 290, 105, 180)
 pf_gnd_p = P(f"FLG{_flg[0]}", "1")
-pwr("GND", pf_gnd_p[0], (pf_gnd_p[1] - 5.08), 180)
-w(pf_gnd_p[0], pf_gnd_p[1], pf_gnd_p[0], (pf_gnd_p[1] - 5.08))
+pgnd = pwr("GND", pf_gnd_p[0], pf_gnd_p[1] - 5.08, 180)
+pgnd_p = P(pgnd.reference, "1")
+w(pf_gnd_p[0], pf_gnd_p[1], pgnd_p[0], pgnd_p[1])
 
 # ──── B: ESP32-S3 ────
 print("  ESP32...")
@@ -220,11 +222,11 @@ pin_pwr("U1", "1", "GND")    # GND
 pin_pwr("U1", "40", "GND")
 pin_pwr("U1", "41", "GND")
 
-# EN → 拉到 VCC
+# EN → VCC（先放电源符号，用其引脚坐标画线）
 p_en = P("U1", "3")
-w(p_en[0], p_en[1], (p_en[0]-10), p_en[1])
-w((p_en[0]-10), p_en[1], (p_en[0]-10), (p_en[1]-7.62))
-pwr("VCC", (p_en[0]-10), (p_en[1]-7.62))
+vcc_en = pwr("VCC", p_en[0]+10.16, p_en[1]-7.62)
+vcc_en_p = P(vcc_en.reference, "1")
+w(p_en[0], p_en[1], vcc_en_p[0], p_en[1], vcc_en_p[0], vcc_en_p[1])
 
 # 信号引脚标号
 u1_comp = sch.components.get("U1")

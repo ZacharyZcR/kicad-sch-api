@@ -274,9 +274,13 @@ class SchematicSymbol:
         cos_a = math.cos(angle_rad)
         sin_a = math.sin(angle_rad)
 
+        # Negate Y: symbol space (Y-up) → schematic space (Y-down)
+        pin_x = pin.position.x
+        pin_y = -pin.position.y
+
         # Rotate pin position from symbol's local coordinates
-        rotated_x = pin.position.x * cos_a - pin.position.y * sin_a
-        rotated_y = pin.position.x * sin_a + pin.position.y * cos_a
+        rotated_x = pin_x * cos_a - pin_y * sin_a
+        rotated_y = pin_x * sin_a + pin_y * cos_a
 
         # Add to component position to get absolute position
         return Point(self.position.x + rotated_x, self.position.y + rotated_y)
