@@ -71,44 +71,62 @@ def pin_nc(ref, num):
 # ================================================================
 print("放置元件...")
 
+# ── 封装定义 ──
+FP_USB_C    = "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+FP_TP4056   = "Package_SO:TSSOP-8_4.4x3mm_P0.65mm"
+FP_R0805    = "Resistor_SMD:R_0805_2012Metric"
+FP_C0805    = "Capacitor_SMD:C_0805_2012Metric"
+FP_LED0805  = "LED_SMD:LED_0805_2012Metric"
+FP_JST2P    = "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"
+FP_SW_SPDT  = "Button_Switch_SMD:SW_SPDT_CK_JS102011SAQN"
+FP_SOT223   = "Package_TO_SOT_SMD:SOT-223-3_TabPin2"
+FP_ESP32S3  = "RF_Module:ESP32-S3-WROOM-1"
+FP_SW_PUSH  = "Button_Switch_THT:SW_PUSH_6mm"
+FP_BUZZER   = "Buzzer_Beeper:Buzzer_12x9.5RM7.6"
+FP_PIN1x02  = "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+FP_PIN1x04  = "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical"
+FP_PIN1x06  = "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"
+FP_PIN1x08  = "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical"
+FP_PIN2x04  = "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical"
+
 # ── 电源区 y=40~100 ──
-add("Connector:USB_C_Receptacle",          "USB1", "USB-C",    70,  60)
-add("Battery_Management:TP4056-42-ESOP8",  "U4",   "TP4056",  140, 60)
-add("Device:R",                            "R5",   "1.2K",    155, 88)
-add("Connector_Generic:Conn_01x02",        "J1",   "BAT",     190, 60)
-add("Switch:SW_Push",                      "SW6",  "PWR",     220, 60)
-add("Regulator_Linear:AMS1117-3.3",        "U2",   "AMS1117", 265, 60)
-add("Device:C",                            "C1",   "10uF",    245, 88)
-add("Device:C",                            "C2",   "10uF",    265, 88)
-add("Device:C",                            "C3",   "100nF",   285, 88)
+add("Connector:USB_C_Receptacle",          "USB1", "USB-C",    70,  60, footprint=FP_USB_C)
+add("Battery_Management:TP4056-42-ESOP8",  "U4",   "TP4056",  140, 60, footprint=FP_TP4056)
+add("Device:R",                            "R5",   "1.2K",    155, 88, footprint=FP_R0805)
+add("Connector_Generic:Conn_01x02",        "J1",   "BAT",     190, 60, footprint=FP_JST2P)
+add("Switch:SW_Push",                      "SW6",  "PWR",     220, 60, footprint=FP_SW_SPDT)
+add("Regulator_Linear:AMS1117-3.3",        "U2",   "AMS1117", 265, 60, footprint=FP_SOT223)
+add("Device:C",                            "C1",   "10uF",    245, 88, footprint=FP_C0805)
+add("Device:C",                            "C2",   "10uF",    265, 88, footprint=FP_C0805)
+add("Device:C",                            "C3",   "100nF",   285, 88, footprint=FP_C0805)
 
 # ── 主控区 y=130~210 ──
-add("RF_Module:ESP32-S3-WROOM-1",          "U1",   "ESP32-S3", 200, 170)
-add("Connector_Generic:Conn_01x04",        "H2",   "UART_DBG", 290, 165)
+add("RF_Module:ESP32-S3-WROOM-1",          "U1",   "ESP32-S3", 200, 170, footprint=FP_ESP32S3)
+add("Connector_Generic:Conn_01x04",        "H2",   "UART_DBG", 290, 165, footprint=FP_PIN1x04)
 
 # ── 人机交互 y=240~340 ──
-add("Connector_Generic:Conn_01x04",        "U3",   "OLED",     60, 270)
-add("Device:R",                            "R1",   "4.7K",     85, 255)
-add("Device:R",                            "R2",   "4.7K",     95, 255)
-add("Device:R",                            "R3",   "330R",     60, 305)
-add("Device:LED",                          "LED1", "PWR",      60, 320)
-add("Device:R",                            "R4",   "330R",     80, 305)
-add("Device:LED",                          "LED2", "STS",      80, 320)
-add("Device:Buzzer",                       "BZ1",  "BUZ",     100, 315)
-add("Switch:SW_Push",                      "SW1",  "UP",      125, 285)
-add("Switch:SW_Push",                      "SW2",  "DN",      145, 285)
-add("Switch:SW_Push",                      "SW3",  "LT",      165, 285)
-add("Switch:SW_Push",                      "SW4",  "RT",      185, 285)
-add("Switch:SW_Push",                      "SW5",  "OK",      205, 285)
+add("Connector_Generic:Conn_01x04",        "U3",   "OLED",     60, 270, footprint=FP_PIN1x04)
+add("Device:R",                            "R1",   "4.7K",     85, 255, footprint=FP_R0805)
+add("Device:R",                            "R2",   "4.7K",     95, 255, footprint=FP_R0805)
+add("Device:R",                            "R3",   "330R",     60, 305, footprint=FP_R0805)
+add("Device:LED",                          "LED1", "PWR",      60, 320, footprint=FP_LED0805)
+add("Device:R",                            "R4",   "330R",     80, 305, footprint=FP_R0805)
+add("Device:LED",                          "LED2", "STS",      80, 320, footprint=FP_LED0805)
+add("Device:Buzzer",                       "BZ1",  "BUZ",     100, 315, footprint=FP_BUZZER)
+add("Switch:SW_Push",                      "SW1",  "UP",      125, 285, footprint=FP_SW_PUSH)
+add("Switch:SW_Push",                      "SW2",  "DN",      145, 285, footprint=FP_SW_PUSH)
+add("Switch:SW_Push",                      "SW3",  "LT",      165, 285, footprint=FP_SW_PUSH)
+add("Switch:SW_Push",                      "SW4",  "RT",      185, 285, footprint=FP_SW_PUSH)
+add("Switch:SW_Push",                      "SW5",  "OK",      205, 285, footprint=FP_SW_PUSH)
 
 # ── 扩展模块 y=240~340 ──
-add("Connector_Generic:Conn_01x08",        "H4",   "RC522",    260, 285)
-add("Connector_Generic:Conn_01x08",        "H5",   "CC1101",   295, 285)
-add("Connector_Generic:Conn_02x04_Odd_Even","P1",  "SOP8",     330, 285)
-add("Connector_Generic:Conn_01x08",        "CARD1","SD",        365, 285)
-add("Connector_Generic:Conn_01x04",        "U5",   "I2C_EXT",  405, 285)
-add("Connector_Generic:Conn_01x04",        "U6",   "UART_EXT", 435, 285)
-add("Connector_Generic:Conn_01x06",        "H3",   "GPIO",     465, 285)
+add("Connector_Generic:Conn_01x08",        "H4",   "RC522",    260, 285, footprint=FP_PIN1x08)
+add("Connector_Generic:Conn_01x08",        "H5",   "CC1101",   295, 285, footprint=FP_PIN1x08)
+add("Connector_Generic:Conn_02x04_Odd_Even","P1",  "SOP8",     330, 285, footprint=FP_PIN2x04)
+add("Connector_Generic:Conn_01x08",        "CARD1","SD",        365, 285, footprint=FP_PIN1x08)
+add("Connector_Generic:Conn_01x04",        "U5",   "I2C_EXT",  405, 285, footprint=FP_PIN1x04)
+add("Connector_Generic:Conn_01x04",        "U6",   "UART_EXT", 435, 285, footprint=FP_PIN1x04)
+add("Connector_Generic:Conn_01x06",        "H3",   "GPIO",     465, 285, footprint=FP_PIN1x06)
 
 print(f"  {len(list(sch.components))} 元件")
 
