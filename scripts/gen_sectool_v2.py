@@ -10,10 +10,6 @@ OUT = "/mnt/c/Users/29037/Desktop/SecToolV2.kicad_sch"
 sch = ksa.create_schematic("SecTool V2")
 sch._data["paper"] = "A2"  # 594x420mm
 
-# ── grid helper: snap to 1.27mm ──
-def g(v):
-    return round(round(v / 1.27) * 1.27, 2)
-
 _flg = [0]
 def add(lib, ref, val, x, y, **kw):
     return sch.components.add(lib, ref, val, position=(x, y), **kw)
@@ -43,28 +39,26 @@ def P(ref, num):
     return (round(pp.x, 2), round(pp.y, 2))
 
 def pin_pwr(ref, num, power_name, length=5.08):
-    """引脚 → 垂直短线 → 电源符号（精确对齐引脚坐标）"""
+    """引脚 → 垂直短线 → 电源符号"""
     px, py = P(ref, num)
     if power_name == "GND":
-        ey = g(py + length)
+        ey = py + length
         w(px, py, px, ey)
         pwr("GND", px, ey, 180)
     else:
-        ey = g(py - length)
+        ey = py - length
         w(px, py, px, ey)
         pwr(power_name, px, ey)
 
 def pin_lbl(ref, num, text, dx=0, dy=0):
-    """引脚 → 短线 → 标号（从引脚精确坐标出发）"""
+    """引脚 → 短线 → 标号"""
     px, py = P(ref, num)
     if dx != 0:
-        ex = g(px + dx)
-        w(px, py, ex, py)
-        lbl(text, ex, py)
+        w(px, py, px + dx, py)
+        lbl(text, px + dx, py)
     elif dy != 0:
-        ey = g(py + dy)
-        w(px, py, px, ey)
-        lbl(text, px, ey)
+        w(px, py, px, py + dy)
+        lbl(text, px, py + dy)
     else:
         lbl(text, px, py)
 
@@ -134,21 +128,26 @@ print("\n布线...")
 
 # ──── A: 电源系统 ────
 
-# USB1 VBUS → +5V (A4, A9, B4, B9 都是 VBUS)
+# USB1: VBUS(A4) → +5V, GND(A1) → GND
+# 注：A4/A9/B4/B9 坐标相同，A1/A12/B1/B12 坐标相同，只需各连一次
 pin_pwr("USB1", "A4", "+5V")
-# USB1 GND (A1, A12, B1, B12 都是 GND — 但坐标相同)
 pin_pwr("USB1", "A1", "GND")
-# USB D+/D-
-pin_lbl("USB1", "A6", "USB_DP", dx=10)
-pin_lbl("USB1", "A7", "USB_DN", dx=10)
-# B侧 D+/D- 同标号
-pin_lbl("USB1", "B6", "USB_DP", dx=10)
-pin_lbl("USB1", "B7", "USB_DN", dx=10)
-# USB 未用引脚 NC
-for pn in ["A2","A3","A5","A8","A10","A11",
-           "B2","B3","B5","B8","B9","B10","B11","B12","SH"]:
-    try: pin_nc("USB1", pn)
-    except: pass
+# USB D+/D-（A6/B6 坐标不同，都要连）
+pin_lbl("USB1", "A6", "USB_DP", dx=10.16)
+pin_lbl("USB1", "A7", "USB_DN", dx=10.16)
+pin_lbl("USB1", "B6", "USB_DP", dx=10.16)
+pin_lbl("USB1", "B7", "USB_DN", dx=10.16)
+# CC1/CC2 → NC（不用 USB PD）
+pin_nc("USB1", "A5")
+pin_nc("USB1", "B5")
+# SBU1/SBU2 → NC
+pin_nc("USB1", "A8")
+pin_nc("USB1", "B8")
+# 高速差分对 → NC（只用 USB 2.0）
+for pn in ["A2","A3","A10","A11","B2","B3","B10","B11"]:
+    pin_nc("USB1", pn)
+# SHIELD → GND
+pin_pwr("USB1", "SH", "GND")
 
 # TP4056 (ESOP-8 实际引脚):
 # 1=TEMP, 2=PROG, 3=GND, 4=VCC, 5=BAT, 6=~STDBY, 7=~CHRG, 8=CE, 9=EPAD
@@ -164,10 +163,10 @@ p_r5_2 = P("R5", "2")  # R5 top
 w(p_prog[0], p_prog[1], p_r5_2[0], p_prog[1], p_r5_2[0], p_r5_2[1])
 pin_pwr("R5", "1", "GND")
 
-# CE(pin8) → +5V (enable)
-pin_pwr("U4", "8", "+5V")
+# CE(pin8) → VCC (enable, 拉高)
+pin_pwr("U4", "8", "+5V", length=7.62)
 
-# ~STDBY, ~CHRG → NC
+# ~STDBY(pin6), ~CHRG(pin7) → NC (开漏输出，不接)
 pin_nc("U4", "6")
 pin_nc("U4", "7")
 
@@ -180,10 +179,10 @@ pin_lbl("SW6", "1", "BAT", dx=-10)
 pin_lbl("SW6", "2", "VIN", dx=10)
 
 # U2 AMS1117: pin3=VI→VIN, pin2=VO→VCC, pin1=GND
-pin_lbl("U2", "3", "VIN", dx=-10)
+pin_lbl("U2", "3", "VIN", dx=-10.16)
 p_vo = P("U2", "2")
-w(p_vo[0], p_vo[1], g(p_vo[0]+10), p_vo[1])
-pwr("VCC", g(p_vo[0]+10), p_vo[1])
+w(p_vo[0], p_vo[1], p_vo[0]+10.16, p_vo[1])
+pwr("VCC", p_vo[0]+10.16, p_vo[1])
 pin_pwr("U2", "1", "GND")
 
 # C1: VIN↔GND
@@ -192,26 +191,26 @@ pin_pwr("C1", "1", "GND")
 
 # C2: VCC↔GND
 p_c2_2 = P("C2", "2")
-w(p_c2_2[0], p_c2_2[1], p_c2_2[0], g(p_c2_2[1]-7.62))
-pwr("VCC", p_c2_2[0], g(p_c2_2[1]-7.62))
+w(p_c2_2[0], p_c2_2[1], p_c2_2[0], (p_c2_2[1]-7.62))
+pwr("VCC", p_c2_2[0], (p_c2_2[1]-7.62))
 pin_pwr("C2", "1", "GND")
 
-# C3: VCC��GND
+# C3: VCC to GND
 p_c3_2 = P("C3", "2")
-w(p_c3_2[0], p_c3_2[1], p_c3_2[0], g(p_c3_2[1]-7.62))
-pwr("VCC", p_c3_2[0], g(p_c3_2[1]-7.62))
+w(p_c3_2[0], p_c3_2[1], p_c3_2[0], (p_c3_2[1]-7.62))
+pwr("VCC", p_c3_2[0], (p_c3_2[1]-7.62))
 pin_pwr("C3", "1", "GND")
 
 # PWR_FLAG 连 VCC net 和 GND net
 pf_vcc = pwr("PWR_FLAG", 280, 40)
 pf_vcc_p = P(f"FLG{_flg[0]}", "1")
-pwr("VCC", pf_vcc_p[0], g(pf_vcc_p[1] + 5.08))
-w(pf_vcc_p[0], pf_vcc_p[1], pf_vcc_p[0], g(pf_vcc_p[1] + 5.08))
+pwr("VCC", pf_vcc_p[0], (pf_vcc_p[1] + 5.08))
+w(pf_vcc_p[0], pf_vcc_p[1], pf_vcc_p[0], (pf_vcc_p[1] + 5.08))
 
 pf_gnd = pwr("PWR_FLAG", 290, 105, 180)
 pf_gnd_p = P(f"FLG{_flg[0]}", "1")
-pwr("GND", pf_gnd_p[0], g(pf_gnd_p[1] - 5.08), 180)
-w(pf_gnd_p[0], pf_gnd_p[1], pf_gnd_p[0], g(pf_gnd_p[1] - 5.08))
+pwr("GND", pf_gnd_p[0], (pf_gnd_p[1] - 5.08), 180)
+w(pf_gnd_p[0], pf_gnd_p[1], pf_gnd_p[0], (pf_gnd_p[1] - 5.08))
 
 # ──── B: ESP32-S3 ────
 print("  ESP32...")
@@ -223,9 +222,9 @@ pin_pwr("U1", "41", "GND")
 
 # EN → 拉到 VCC
 p_en = P("U1", "3")
-w(p_en[0], p_en[1], g(p_en[0]-10), p_en[1])
-w(g(p_en[0]-10), p_en[1], g(p_en[0]-10), g(p_en[1]-7.62))
-pwr("VCC", g(p_en[0]-10), g(p_en[1]-7.62))
+w(p_en[0], p_en[1], (p_en[0]-10), p_en[1])
+w((p_en[0]-10), p_en[1], (p_en[0]-10), (p_en[1]-7.62))
+pwr("VCC", (p_en[0]-10), (p_en[1]-7.62))
 
 # 信号引脚标号
 u1_comp = sch.components.get("U1")
@@ -279,20 +278,20 @@ pin_lbl("U3", "4", "SDA", dx=-10)
 
 # R1 SCL上拉: top→VCC, bottom→SCL
 p = P("R1", "2")
-w(p[0], p[1], p[0], g(p[1]-7.62))
-pwr("VCC", p[0], g(p[1]-7.62))
+w(p[0], p[1], p[0], (p[1]-7.62))
+pwr("VCC", p[0], (p[1]-7.62))
 pin_lbl("R1", "1", "SCL", dy=7.62)
 
 # R2 SDA上拉: top→VCC, bottom→SDA
 p = P("R2", "2")
-w(p[0], p[1], p[0], g(p[1]-7.62))
-pwr("VCC", p[0], g(p[1]-7.62))
+w(p[0], p[1], p[0], (p[1]-7.62))
+pwr("VCC", p[0], (p[1]-7.62))
 pin_lbl("R2", "1", "SDA", dy=7.62)
 
 # R3→LED1 电源灯
 p = P("R3", "2")
-w(p[0], p[1], p[0], g(p[1]-7.62))
-pwr("VCC", p[0], g(p[1]-7.62))
+w(p[0], p[1], p[0], (p[1]-7.62))
+pwr("VCC", p[0], (p[1]-7.62))
 # R3 bottom → LED1 anode
 r3b = P("R3", "1")
 led1a = P("LED1", "2")
