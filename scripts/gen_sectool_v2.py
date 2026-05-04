@@ -157,11 +157,11 @@ pin_pwr("U4", "9", "GND")        # EPAD → GND
 pin_pwr("U4", "1", "GND")        # TEMP → GND
 pin_lbl("U4", "5", "BAT", dx=10) # BAT
 
-# PROG(pin2) → R5 → GND
+# PROG(U4.2) → R5.pin1(上) → R5.pin2(下) → GND
 p_prog = P("U4", "2")
-p_r5_2 = P("R5", "2")  # R5 top
-w(p_prog[0], p_prog[1], p_r5_2[0], p_prog[1], p_r5_2[0], p_r5_2[1])
-pin_pwr("R5", "1", "GND")
+p_r5_1 = P("R5", "1")  # R5 上端
+w(p_prog[0], p_prog[1], p_r5_1[0], p_prog[1], p_r5_1[0], p_r5_1[1])
+pin_pwr("R5", "2", "GND")
 
 # CE(pin8) → VCC (enable, 拉高)
 pin_pwr("U4", "8", "+5V", length=7.62)
@@ -183,21 +183,17 @@ pin_lbl("U2", "3", "VIN", dx=-10.16)
 pin_lbl("U2", "2", "VCC", dx=10.16)
 pin_pwr("U2", "1", "GND")
 
-# C1: VIN↔GND
-pin_lbl("C1", "2", "VIN", dy=-7.62)
-pin_pwr("C1", "1", "GND")
+# C1: pin1(上)→VIN, pin2(下)→GND
+pin_lbl("C1", "1", "VIN", dy=-7.62)
+pin_pwr("C1", "2", "GND")
 
-# C2: VCC↔GND
-p_c2_2 = P("C2", "2")
-w(p_c2_2[0], p_c2_2[1], p_c2_2[0], (p_c2_2[1]-7.62))
-pwr("VCC", p_c2_2[0], (p_c2_2[1]-7.62))
-pin_pwr("C2", "1", "GND")
+# C2: pin1(上)→VCC, pin2(下)→GND
+pin_pwr("C2", "1", "VCC")
+pin_pwr("C2", "2", "GND")
 
-# C3: VCC to GND
-p_c3_2 = P("C3", "2")
-w(p_c3_2[0], p_c3_2[1], p_c3_2[0], (p_c3_2[1]-7.62))
-pwr("VCC", p_c3_2[0], (p_c3_2[1]-7.62))
-pin_pwr("C3", "1", "GND")
+# C3: pin1(上)→VCC, pin2(下)→GND
+pin_pwr("C3", "1", "VCC")
+pin_pwr("C3", "2", "GND")
 
 # PWR_FLAG 驱动 +5V net 和 GND net
 # +5V PWR_FLAG：放 PWR_FLAG，连到 +5V 符号
@@ -213,6 +209,12 @@ pf_gnd_p = P(f"FLG{_flg[0]}", "1")
 pgnd = pwr("GND", pf_gnd_p[0], pf_gnd_p[1] - 5.08, 180)
 pgnd_p = P(pgnd.reference, "1")
 w(pf_gnd_p[0], pf_gnd_p[1], pgnd_p[0], pgnd_p[1])
+
+# VIN PWR_FLAG（SW6 输出 → AMS1117 输入的中间 net）
+pf_vin = pwr("PWR_FLAG", 300, 40)
+pf_vin_p = P(f"FLG{_flg[0]}", "1")
+w(pf_vin_p[0], pf_vin_p[1], pf_vin_p[0], pf_vin_p[1] + 5.08)
+lbl("VIN", pf_vin_p[0], pf_vin_p[1] + 5.08)
 
 # ──── B: ESP32-S3 ────
 print("  ESP32...")
@@ -278,36 +280,29 @@ pin_pwr("U3", "2", "GND")
 pin_lbl("U3", "3", "SCL", dx=-10)
 pin_lbl("U3", "4", "SDA", dx=-10)
 
-# R1 SCL上拉: top→VCC, bottom→SCL
-p = P("R1", "2")
-w(p[0], p[1], p[0], (p[1]-7.62))
-pwr("VCC", p[0], (p[1]-7.62))
-pin_lbl("R1", "1", "SCL", dy=7.62)
+# R1 SCL上拉: pin1(上)→VCC, pin2(下)→SCL
+pin_pwr("R1", "1", "VCC")
+pin_lbl("R1", "2", "SCL", dy=7.62)
 
-# R2 SDA上拉: top→VCC, bottom→SDA
-p = P("R2", "2")
-w(p[0], p[1], p[0], (p[1]-7.62))
-pwr("VCC", p[0], (p[1]-7.62))
-pin_lbl("R2", "1", "SDA", dy=7.62)
+# R2 SDA上拉: pin1(上)→VCC, pin2(下)→SDA
+pin_pwr("R2", "1", "VCC")
+pin_lbl("R2", "2", "SDA", dy=7.62)
 
-# R3→LED1 电源灯
-p = P("R3", "2")
-w(p[0], p[1], p[0], (p[1]-7.62))
-pwr("VCC", p[0], (p[1]-7.62))
-# R3 bottom → LED1 anode
-r3b = P("R3", "1")
+# R3→LED1 电源灯: pin1(上)→VCC, pin2(下)→LED1.A(右)
+pin_pwr("R3", "1", "VCC")
+r3b = P("R3", "2")
 led1a = P("LED1", "2")
 w(r3b[0], r3b[1], led1a[0], led1a[1])
-pin_pwr("LED1", "1", "GND")
+pin_pwr("LED1", "1", "GND", length=7.62)
 
-# R4→LED2 状态灯
-pin_lbl("R4", "2", "LED_STS", dy=-7.62)
-r4b = P("R4", "1")
+# R4→LED2 状态灯: pin1(上)→LED_STS, pin2(下)→LED2.A(右)
+pin_lbl("R4", "1", "LED_STS", dy=-7.62)
+r4b = P("R4", "2")
 led2a = P("LED2", "2")
 w(r4b[0], r4b[1], led2a[0], led2a[1])
-pin_pwr("LED2", "1", "GND")
+pin_pwr("LED2", "1", "GND", length=7.62)
 
-# BZ1: pin1→BUZZER, pin2→GND
+# BZ1: pin1(+,上)→BUZZER, pin2(-,下)→GND
 pin_lbl("BZ1", "1", "BUZZER", dy=-7.62)
 pin_pwr("BZ1", "2", "GND")
 
