@@ -104,7 +104,7 @@ def cmd_add_junction(file: str, pos: str) -> None:
     position = parse_position(pos)
 
     try:
-        sch.add_junction(position=position)
+        sch.junctions.add(position=position)
         save_schematic(sch, file)
         click.echo(f"Junction at {position}")
     except Exception as e:

@@ -96,16 +96,18 @@ def cmd_validate(file: str) -> None:
 @click.option("-o", "--output", default=None, help="Output Python file (default: stdout)")
 def cmd_to_python(file: str, output: str) -> None:
     """Convert schematic to Python code."""
-    output_path = output or "-"
     try:
-        if output_path == "-":
-            import io
-            buf = io.StringIO()
-            ksa.schematic_to_python(file, buf)
-            click.echo(buf.getvalue())
+        if output:
+            ksa.schematic_to_python(file, output)
+            click.echo(f"Generated: {output}")
         else:
-            ksa.schematic_to_python(file, output_path)
-            click.echo(f"Generated: {output_path}")
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="r") as tmp:
+                tmp_path = tmp.name
+            ksa.schematic_to_python(file, tmp_path)
+            with open(tmp_path) as f:
+                click.echo(f.read())
+            Path(tmp_path).unlink(missing_ok=True)
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)

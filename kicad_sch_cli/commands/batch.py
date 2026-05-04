@@ -90,7 +90,7 @@ def cmd_batch(file: str, json_file: str) -> None:
 
     for junc in data.get("junctions", []):
         try:
-            sch.add_junction(position=tuple(junc["position"]))
+            sch.junctions.add(position=tuple(junc["position"]))
             counts["junctions"] += 1
         except Exception as e:
             click.echo(f"  Warning: junction: {e}", err=True)
